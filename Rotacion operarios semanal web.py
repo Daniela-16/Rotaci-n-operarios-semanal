@@ -1,12 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 12 14:39:07 2025
-
-@author: NCGNpracpim
-"""
-
-# -*- coding: utf-8 -*-
-
 import streamlit as st
 import pandas as pd
 import io
@@ -43,7 +35,7 @@ if uploaded_file:
         
     except KeyError as e:
         st.error(f"Error: La columna esperada no se encuentra en el archivo. Faltan las columnas: {e}. Por favor, verifica el nombre de las columnas.")
-        st.stop() # Detiene la ejecución del script si hay un error
+        st.stop()
     
     # --- PASO 2: Crear la Clave de "Grupo de Trabajo" ---
     df['Clave_grupo_trabajo'] = df['Nombre'] + '_' + \
@@ -53,13 +45,7 @@ if uploaded_file:
                                 df['Cargo']
 
     # --- PASO 3: Calcular Semanas Consecutivas ---
-    # La lógica para 'semanas_consecutivas_rotacion' es idéntica a la de tu script original.
-    # Aquí puedes pegar esa parte sin cambios.
-    # Inicializar nueva columna
     df['semanas_consecutivas_rotacion'] = 0
-    # ... [PEGA TU BUCLE FOR COMPLETO PARA EL CÁLCULO AQUÍ] ...
-
-    # Ejemplo del bucle a pegar
     for i in range(len(df)):
         if i == 0:
             df.loc[i, 'semanas_consecutivas_rotacion'] = 1
@@ -68,7 +54,6 @@ if uploaded_file:
             clave_grupo_actual = df.loc[i, 'Clave_grupo_trabajo']
             año_actual = df.loc[i, 'Año']
             semana_actual = df.loc[i, 'Semana']
-
             nombre_anterior = df.loc[i-1, 'Nombre']
             clave_grupo_anterior = df.loc[i-1, 'Clave_grupo_trabajo']
             año_anterior = df.loc[i-1, 'Año']
@@ -89,13 +74,11 @@ if uploaded_file:
             else:
                 df.loc[i, 'semanas_consecutivas_rotacion'] = 1
 
-    # CÁLCULO DE SEMANAS CONSECUTIVAS PARA "SIN ASIGNAR"
     df_sin_asignar = df[df['Cargo'].str.contains('sin asignar', case=False, na=False)].copy()
     if not df_sin_asignar.empty:
         df_sin_asignar = df_sin_asignar.sort_values(by=['Nombre', 'Año', 'Semana']).reset_index(drop=True)
         df_sin_asignar['semanas_sin_asignar_consecutivas'] = 0
         
-        # ... [PEGA TU BUCLE FOR COMPLETO PARA EL CÁLCULO 'SIN ASIGNAR' AQUÍ] ...
         for i in range(len(df_sin_asignar)):
             if i == 0:
                 df_sin_asignar.loc[i, 'semanas_sin_asignar_consecutivas'] = 1
@@ -103,7 +86,6 @@ if uploaded_file:
                 nombre_actual_sa = df_sin_asignar.loc[i, 'Nombre']
                 año_actual_sa = df_sin_asignar.loc[i, 'Año']
                 semana_actual_sa = df_sin_asignar.loc[i, 'Semana']
-
                 nombre_anterior_sa = df_sin_asignar.loc[i-1, 'Nombre']
                 año_anterior_sa = df_sin_asignar.loc[i-1, 'Año']
                 semana_anterior_sa = df_sin_asignar.loc[i-1, 'Semana']
@@ -150,3 +132,27 @@ if uploaded_file:
             st.success(f"✅ ¡Felicitaciones! No se encontraron incumplimientos 'Sin Asignar' (límite: {limite_semanas_sin_asignar} semana).")
     else:
         st.info("No se encontraron registros con el cargo 'Sin Asignar' en el archivo.")
+    
+    # --- Sección de descarga del archivo ---
+    st.markdown("---")
+    st.subheader("Descargar Reporte de Incumplimientos")
+
+    output = io.BytesIO()
+
+    # Escribir los resultados en un archivo de Excel en memoria
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        if not incumplimientos_rotacion_raw.empty:
+            incumplimientos_rotacion_consolidados.to_excel(writer, sheet_name='Alertas', index=False)
+        
+        if not df_sin_asignar.empty:
+            incumplimientos_sin_asignar_consolidados.to_excel(writer, sheet_name='Sin Asignar Prolongado', index=False)
+
+    output.seek(0)
+
+    # Botón de descarga con el nombre del archivo original
+    st.download_button(
+        label="Descargar archivo de Excel con reportes",
+        data=output,
+        file_name=uploaded_file.name,  # Aquí está el cambio
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
